@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bubble Stack</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+  <style>
+    .bubble {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      margin: 10px;
+      display: inline-block;
+      transition: all 0.5s ease-in-out;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .bubble-up {
+      animation: bubbleUp 1.5s ease-out forwards;
+    }
+    @keyframes bubbleUp {
+      0% { transform: translateY(50px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    .bubble-container {
+      display: flex;
+      flex-direction: column-reverse;
+      justify-content: flex-start;
+      align-items: center;
+      height: 100vh;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+
+  <!-- Name Selection Page -->
+  <div id="namePage" class="flex flex-col items-center justify-center h-screen">
+    <h1 class="text-3xl font-bold mb-6">Enter Your Name</h1>
+    <form id="nameForm" class="flex flex-col items-center space-y-4">
+      <input id="username" type="text" placeholder="Your Name" class="p-2 border rounded" required>
+      <label>
+        <input type="checkbox" id="originalBubble" class="mr-1"> Make Original Unpoppable Bubble
+      </label>
+      <button class="p-2 bg-blue-500 text-white rounded">Start</button>
+    </form>
+  </div>
+
+  <!-- Bubble Page -->
+  <div id="bubblePage" class="hidden flex flex-col items-center justify-center h-screen">
+    <h1 class="text-3xl font-bold mb-6">Bubble Stack</h1>
+    <div class="bubble-container w-full max-w-md">
+      <div id="bubbleContainer"></div>
+    </div>
+    <button id="createBubble" class="mt-6 p-2 bg-green-500 text-white rounded">Create Bubble</button>
+  </div>
+
+  <script>
+
+    // Firebase configuration
+    const firebaseConfig = {
+    apiKey: "AIzaSyBJs7p05Rv0D7_EvKKkC_T0r79lD6yB76k",
+    authDomain: "when2speak-8614b.firebaseapp.com",
+    databaseURL: "https://when2speak-8614b-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "when2speak-8614b",
+    storageBucket: "when2speak-8614b.appspot.com",
+    messagingSenderId: "1072171784990",
+    appId: "1:1072171784990:web:49a5bc016c8802cd67c70f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    const db = firebase.database();
+
+    const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#FFA833'];
+    let username = '';
+    let isOriginal = false;
+
+    const namePage = document.getElementById('namePage');
+    const bubblePage = document.getElementById('bubblePage');
+    const bubbleContainer = document.getElementById('bubbleContainer');
+    const createBubbleBtn = document.getElementById('createBubble');
+
+    document.getElementById('nameForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      username = document.getElementById('username').value;
+      isOriginal = document.getElementById('originalBubble').checked;
+      
+      namePage.classList.add('hidden');
+      bubblePage.classList.remove('hidden');
+    });
+
+    createBubbleBtn.addEventListener('click', () => {
+      const userColor = colors[Math.floor(Math.random() * colors.length)];
+      const bubbleData = {
+        username,
+        color: userColor,
+        original: isOriginal,
+        id: Date.now(),
+      };
+      firebase.database().ref('bubbles').push(bubbleData);
+    });
+
+    firebase.database().ref('bubbles').on('child_added', (snapshot) => {
+    const bubbleData = snapshot.val();
+    bubbleData.key = snapshot.key; // Add the Firebase key to bubbleData
+    createBubbleElement(bubbleData);
+    });
+
+
+    function createBubbleElement({username, color, original, id, key}) {
+    const bubble = document.createElement('div');
+    bubble.classList.add('bubble', 'bubble-up');
+    bubble.style.backgroundColor = color;
+    bubble.innerText = username;
+
+    if (!original) {
+        bubble.addEventListener('click', () => {
+        firebase.database().ref('bubbles/' + key).remove();  // Use Firebase's key for deletion
+        bubble.remove();
+        });
+    } else {
+        bubble.innerText += ' (Unpoppable)';
+    }
+
+    bubbleContainer.appendChild(bubble);
+    }
+
+  </script>
+</body>
+</html>
